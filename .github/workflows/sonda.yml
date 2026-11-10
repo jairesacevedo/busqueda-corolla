@@ -1,0 +1,15 @@
+name: Sonda Carroya (prueba de conectividad)
+
+on:
+  workflow_dispatch:   # se lanza a mano desde la pestaña Actions
+
+jobs:
+  sonda:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install requests
+      - run: python sonda_carroya.py
