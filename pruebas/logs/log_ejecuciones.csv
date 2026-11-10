@@ -1,0 +1,4 @@
+id_ejecucion,modo,etapa,inicio,fin,duracion_s,estado,enlaces_encontrados,anuncios_nuevos,descargas_ok,descargas_fallidas,descargas_pendientes,registros_agregados,registros_actualizados,registros_sin_cambio,anuncios_unicos_total,tamano_db_kb,busqueda_completa,errores,estado_correo
+PRUEBA-20261109-200304,prueba,busqueda,2026-11-09T20:03:04-05:00,2026-11-09T20:03:09-05:00,4.2,ok,60,,,,60,,,,,,True,,
+PRUEBA-20261109-200304,prueba,descarga,2026-11-09T20:03:09-05:00,2026-11-09T20:04:24-05:00,75.7,ok,60,,60,0,0,,,,,,,,
+PRUEBA-20261109-200304,prueba,consolidacion,2026-11-09T20:04:24-05:00,2026-11-09T20:04:24-05:00,0.1,ok,60,60,,,,60,0,0,60,80.0,True,,
