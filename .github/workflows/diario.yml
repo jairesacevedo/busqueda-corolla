@@ -1,0 +1,50 @@
+name: Recolección diaria 8:00 (Bogotá)
+
+on:
+  schedule:
+    # 12:40 UTC = 7:40 Bogotá, del 16 al 21 de noviembre. El script espera hasta las 8:00:00.
+    - cron: "40 12 16-21 11 *"
+  workflow_dispatch:
+    inputs:
+      modo:
+        description: "real o prueba (prueba escribe en pruebas/)"
+        default: prueba
+        type: choice
+        options: [prueba, real]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: datos-corolla   # nunca dos ejecuciones escribiendo a la vez
+  cancel-in-progress: false
+
+jobs:
+  recolectar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      COROLLA_MODO: ${{ github.event_name == 'schedule' && 'real' || inputs.modo }}
+      PYTHONPATH: src
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+
+      - name: Pipeline (búsqueda, descarga, consolidación)
+        run: |
+          if [ "${{ github.event_name }}" = "schedule" ]; then ESPERA="--esperar-hasta 08:00"; fi
+          python -m corolla.pipeline --modo "$COROLLA_MODO" $ESPERA
+
+      - name: Guardar datos en el repositorio
+        if: always()   # aunque falle el pipeline, se guarda la evidencia y el log
+        run: |
+          git config user.name "corolla-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A datos logs reportes pruebas 2>/dev/null || true
+          if git diff --cached --quiet; then echo "Sin cambios"; exit 0; fi
+          git commit -m "datos ${COROLLA_MODO} $(TZ=America/Bogota date +%Y-%m-%dT%H:%M%z)"
+          for i in 1 2 3; do git pull --rebase && git push && break; sleep 5; done
