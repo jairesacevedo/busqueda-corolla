@@ -158,3 +158,12 @@ def test_fallo_de_descarga_sigue_encontrado(api):
     assert fila == [("encontrado", "fallido")]
     # la ficha conserva el último dato válido
     assert q(rt, "SELECT precio FROM anuncios")[0][0] == 100_000_000
+
+
+def test_extraer_transmision_cero_y_sunroof_combinado():
+    det = {"id": "a", "box": "0", "accessories": [{"name": "Alarma"}], "comments": ""}
+    tar = {"ctipocaja": "", "caccesorios": "Alarma, Techo panorámico", "ccomentarios": ""}
+    r = rec.extraer(det, tar)
+    assert r["transmision"] is None          # "0" es vacío, no una transmisión
+    assert r["sunroof"] == "si"              # aparece en la tarjeta aunque no en el detalle
+    assert rec.detectar_sunroof(None, "") is None

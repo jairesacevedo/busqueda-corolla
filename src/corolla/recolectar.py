@@ -64,12 +64,23 @@ def _num(v):
     return int(n) if n == int(n) else n
 
 
+def _texto(v) -> str | None:
+    """Pasa listas/diccionarios de la API a texto plano; vacío -> None."""
+    if isinstance(v, list):
+        v = ", ".join(str(next(iter(a.values()), "")) if isinstance(a, dict) else str(a) for a in v)
+    elif isinstance(v, dict):
+        v = ", ".join(str(x) for x in v.values())
+    return _vacio(v)
+
+
+def _unir(*valores) -> str | None:
+    partes = [t for t in (_texto(v) for v in valores) if t]
+    return ", ".join(partes) or None
+
+
 def detectar_sunroof(accesorios, comentarios) -> str | None:
     """'si' si se menciona; 'no' si hay lista de accesorios sin mención; None si no hay información."""
-    acc = accesorios
-    if isinstance(acc, list):
-        acc = ", ".join(str(a.get("name", a)) if isinstance(a, dict) else str(a) for a in acc)
-    acc = _vacio(acc)
+    acc = _texto(accesorios)
     if SUNROOF.search(f"{acc or ''} {comentarios or ''}"):
         return "si"
     return "no" if acc else None
@@ -134,10 +145,13 @@ def extraer(d: dict, tarjeta: dict) -> dict:
         "marca": de("brand"), "linea": de("model"), "anio": _num(de("year")),
         "version": de("version", "clinea2"), "precio": _num(de("price")),
         "moneda": _vacio(tarjeta.get("ctipomoneda")) or ("PESO" if _num(de("price")) else None),
-        "kilometraje": _num(de("kilometers")), "transmision": de("box", "ctipocaja"),
+        "kilometraje": _num(de("kilometers")),
+        "transmision": next((t for t in (_vacio(d.get("box")), _vacio(tarjeta.get("ctipocaja")))
+                             if t not in (None, "0", 0)), None),  # la API usa "0" como vacío
         "combustible": de("fuel", "ccombustible"), "ciudad": de("city"),
-        "sunroof": detectar_sunroof(d.get("accessories") or tarjeta.get("caccesorios"),
-                                    d.get("comments") or tarjeta.get("ccomentarios")),
+        # se combinan accesorios y comentarios del detalle y de la tarjeta de búsqueda
+        "sunroof": detectar_sunroof(_unir(d.get("accessories"), tarjeta.get("caccesorios")),
+                                    _unir(d.get("comments"), tarjeta.get("ccomentarios"))),
         "color": de("color"), "fecha_publicacion_carroya": de("fechapublicacion", "cfechapublicacion"),
         "fecha_actualizacion_carroya": de("fechaactualizacion", "cfechaactualizacion"),
         "vendido": de("sold"),
