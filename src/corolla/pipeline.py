@@ -13,6 +13,7 @@ import time
 from datetime import datetime
 
 from . import config as cfg
+from .analizar import analizar
 from .consolidar import consolidar, exportar_csv
 from .logs import etapa
 from .recolectar import etapa_busqueda, etapa_descarga
@@ -73,6 +74,15 @@ def main(argv=None) -> int:
             if c["estado"] == "omitido":
                 reg.update(estado="omitido", errores=c["motivo"])
             print(f"  consolidación: {c}", flush=True)
+
+        with etapa(rt["log"], run, a.modo, "analisis") as reg:
+            s = analizar(rt["db"], fecha, rt["reportes"])
+            reg.update(enlaces_encontrados=m["enlaces_encontrados"],
+                       anuncios_unicos_total=c["anuncios_unicos_total"])
+            if s["motivo_sin_analisis"]:
+                reg.update(estado="parcial", errores=s["motivo_sin_analisis"])
+            print(f"  análisis: {s['n_validos']} válidos · {s['gangas_nuevas']} gangas nuevas · "
+                  f"{s['datos_insuficientes']} sin comparables", flush=True)
     except Exception as e:  # el error ya quedó en el log de la etapa
         print(f"ERROR: {type(e).__name__}: {e}", file=sys.stderr, flush=True)
         codigo = 1

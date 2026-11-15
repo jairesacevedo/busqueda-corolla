@@ -1,0 +1,71 @@
+name: Correo diario 11:00 (Bogotá)
+
+on:
+  schedule:
+    # 15:40 UTC = 10:40 Bogotá, del 16 al 21 de noviembre. El script espera hasta las 11:00:00.
+    - cron: "40 15 16-21 11 *"
+  workflow_dispatch:
+    inputs:
+      modo:
+        description: "real o prueba (prueba lee pruebas/ y pone [PRUEBA] en el asunto)"
+        default: prueba
+        type: choice
+        options: [prueba, real]
+      fecha:
+        description: "AAAA-MM-DD (vacío = hoy en Bogotá)"
+        required: false
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: correo-corolla   # independiente de la recolección: el correo no espera a que termine
+  cancel-in-progress: false
+
+jobs:
+  correo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      COROLLA_MODO: ${{ github.event_name == 'schedule' && 'real' || inputs.modo }}
+      PYTHONPATH: src
+      GMAIL_USER: jairesacevedo@gmail.com
+      GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+      COROLLA_DESTINO: ja.acevedor1@uniandes.edu.co
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+
+      - name: Esperar la hora y traer los datos más recientes
+        run: |
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            python -c "from corolla.pipeline import esperar_hasta; esperar_hasta('11:00')"
+          fi
+          git pull --rebase origin main
+
+      - name: ¿Sigue corriendo la recolección de las 8:00?
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          N=$(gh api "repos/${{ github.repository }}/actions/workflows/diario.yml/runs?status=in_progress" --jq '.total_count' || echo 0)
+          Q=$(gh api "repos/${{ github.repository }}/actions/workflows/diario.yml/runs?status=queued" --jq '.total_count' || echo 0)
+          if [ "$((N + Q))" -gt 0 ]; then echo "EJECUCION_EN_CURSO=1" >> "$GITHUB_ENV"; fi
+
+      - name: Construir y enviar el correo
+        run: python -m corolla.correo --modo "$COROLLA_MODO" ${{ inputs.fecha && format('--fecha {0}', inputs.fecha) || '' }}
+
+      - name: Guardar log y copia del correo
+        if: always()
+        run: |
+          git config user.name "corolla-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          CARPETAS=$(ls -d logs reportes pruebas 2>/dev/null || true)
+          [ -n "$CARPETAS" ] && git add -A -- $CARPETAS
+          if git diff --cached --quiet; then echo "Sin cambios"; exit 0; fi
+          git commit -m "correo ${COROLLA_MODO} $(TZ=America/Bogota date +%Y-%m-%dT%H:%M%z)"
+          for i in 1 2 3; do git pull --rebase && git push && break; sleep 5; done
