@@ -1,0 +1,5 @@
+id_ejecucion,modo,etapa,inicio,fin,duracion_s,estado,enlaces_encontrados,anuncios_nuevos,descargas_ok,descargas_fallidas,descargas_pendientes,registros_agregados,registros_actualizados,registros_sin_cambio,anuncios_unicos_total,tamano_db_kb,busqueda_completa,errores,estado_correo
+20261116-173014,real,busqueda,2026-11-16T17:30:14-05:00,2026-11-16T17:30:19-05:00,5.3,ok,61,,,,61,,,,,,True,,
+20261116-173014,real,descarga,2026-11-16T17:30:19-05:00,2026-11-16T17:31:36-05:00,77.3,ok,61,,61,0,0,,,,,,,,
+20261116-173014,real,consolidacion,2026-11-16T17:31:36-05:00,2026-11-16T17:31:36-05:00,0.0,ok,61,61,,,,61,0,0,61,80.0,True,,
+20261116-173014,real,analisis,2026-11-16T17:31:36-05:00,2026-11-16T17:31:37-05:00,0.4,ok,61,,,,,,,,61,,,,
