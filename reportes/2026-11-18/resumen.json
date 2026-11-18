@@ -1,0 +1,59 @@
+{
+  "fecha": "2026-11-18",
+  "encontrados": 62,
+  "descargados": 62,
+  "precios_invalidos": 0,
+  "n_validos": 62,
+  "nuevos_validos": 2,
+  "umbral": 0.85,
+  "min_comparables": 5,
+  "grafica": "distribucion.png",
+  "estadisticas": {
+    "n": 62,
+    "minimo": 83990000.0,
+    "q1": 94250000.0,
+    "mediana": 106400000.0,
+    "q3": 116425000.0,
+    "maximo": 152000000.0,
+    "promedio": 107583387.09677419
+  },
+  "motivo_sin_analisis": null,
+  "por_anio": [
+    {
+      "anio": 2022,
+      "count": 16,
+      "median": 92950000.0
+    },
+    {
+      "anio": 2023,
+      "count": 28,
+      "median": 101500000.0
+    },
+    {
+      "anio": 2024,
+      "count": 5,
+      "median": 113000000.0
+    },
+    {
+      "anio": 2025,
+      "count": 8,
+      "median": 125450000.0
+    },
+    {
+      "anio": 2026,
+      "count": 5,
+      "median": 129900000.0
+    }
+  ],
+  "gangas_totales": 1,
+  "gangas_nuevas": 0,
+  "posibles_duplicados": 4,
+  "datos_insuficientes": 6,
+  "por_nivel": {
+    "mismo año, combustible y banda de km": 40,
+    "año ±1 y mismo combustible": 10,
+    "mismo año y combustible": 6,
+    "datos insuficientes": 6
+  },
+  "cambios_precio": 0
+}
