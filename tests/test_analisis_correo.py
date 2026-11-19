@@ -42,3 +42,15 @@ def test_estado_general():
     assert estado_general([], False)[0] == "error"             # no hubo ejecución
     assert estado_general(ok[:2], True)[0] == "parcial"        # a medias
     assert estado_general(ok[:3] + [{"etapa": "analisis", "estado": "error"}], False)[0] == "error"
+
+
+def test_una_vez_al_dia(tmp_path):
+    from corolla.logs import escribir
+    from corolla.pipeline import ya_ejecutado
+    log = tmp_path / "log.csv"
+    assert not ya_ejecutado(log, "2026-11-19", "analisis")
+    escribir(log, {"etapa": "analisis", "inicio": "2026-11-19T08:01:40-05:00", "estado": "ok"})
+    escribir(log, {"etapa": "correo", "inicio": "2026-11-19T11:00:02-05:00", "estado": "error"})
+    assert ya_ejecutado(log, "2026-11-19", "analisis")
+    assert not ya_ejecutado(log, "2026-11-20", "analisis")
+    assert not ya_ejecutado(log, "2026-11-19", "correo")   # un correo fallido sí se reintenta

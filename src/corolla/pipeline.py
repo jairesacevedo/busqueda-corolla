@@ -29,13 +29,29 @@ def esperar_hasta(hhmm: str) -> None:
         time.sleep(faltan)
 
 
+def ya_ejecutado(ruta_log, fecha: str, etapa_final: str) -> bool:
+    """True si el log ya tiene la etapa final de una ejecución iniciada en esa fecha (ok o parcial)."""
+    import csv
+    if not ruta_log.exists():
+        return False
+    with ruta_log.open(encoding="utf-8") as f:
+        return any(r["etapa"] == etapa_final and r["inicio"].startswith(fecha)
+                   and r["estado"] in {"ok", "parcial"} for r in csv.DictReader(f))
+
+
 def main(argv=None) -> int:
     p = argparse.ArgumentParser()
     p.add_argument("--modo", choices=["real", "prueba"], default=os.getenv("COROLLA_MODO", "prueba"))
     p.add_argument("--fecha", help="AAAA-MM-DD (por defecto hoy en Bogotá)")
     p.add_argument("--esperar-hasta", help="HH:MM en hora Colombia")
+    p.add_argument("--una-vez", action="store_true",
+                   help="no hacer nada si ya hubo una ejecución completa hoy (disparos repetidos)")
     a = p.parse_args(argv)
     os.environ["COROLLA_MODO"] = a.modo
+    if a.una_vez and ya_ejecutado(cfg.rutas(a.fecha or cfg.ahora().date().isoformat(), a.modo)["log"],
+                                  a.fecha or cfg.ahora().date().isoformat(), "analisis"):
+        print("Ya hubo una ejecución completa hoy: este disparo se omite.", flush=True)
+        return 0
     if a.esperar_hasta:
         esperar_hasta(a.esperar_hasta)
 

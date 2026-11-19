@@ -2,15 +2,17 @@ name: Recolección diaria 8:00 (Bogotá)
 
 on:
   schedule:
-    # 12:40 UTC = 7:40 Bogotá, del 16 al 21 de noviembre. El script espera hasta las 8:00:00.
+    # RESPALDO. El disparador principal es externo (cron-job.org -> workflow_dispatch modo=programado),
+    # porque el cron de GitHub llegó con 8-10 h de retraso el 16-18 nov. Si ya corrió hoy, se omite.
     - cron: "40 12 16-21 11 *"
+    - cron: "10 14 19-21 11 *"
   workflow_dispatch:
     inputs:
       modo:
-        description: "real o prueba (prueba escribe en pruebas/)"
+        description: "programado (disparador externo: real + hora exacta + 1 vez al día), real o prueba"
         default: prueba
         type: choice
-        options: [prueba, real]
+        options: [prueba, real, programado]
 
 permissions:
   contents: write
@@ -24,7 +26,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
-      COROLLA_MODO: ${{ github.event_name == 'schedule' && 'real' || inputs.modo }}
+      COROLLA_MODO: ${{ (github.event_name == 'schedule' || inputs.modo == 'programado') && 'real' || inputs.modo }}
+      PROGRAMADO: ${{ (github.event_name == 'schedule' || inputs.modo == 'programado') && '1' || '0' }}
       PYTHONPATH: src
     steps:
       - uses: actions/checkout@v4
@@ -36,8 +39,9 @@ jobs:
 
       - name: Pipeline (búsqueda, descarga, consolidación)
         run: |
-          if [ "${{ github.event_name }}" = "schedule" ]; then ESPERA="--esperar-hasta 08:00"; fi
-          python -m corolla.pipeline --modo "$COROLLA_MODO" $ESPERA
+          # Programado (cron de respaldo o disparador externo): hora exacta y una sola vez al día
+          if [ "$PROGRAMADO" = "1" ]; then EXTRA="--esperar-hasta 08:00 --una-vez"; fi
+          python -m corolla.pipeline --modo "$COROLLA_MODO" $EXTRA
 
       - name: Guardar datos en el repositorio
         if: always()   # aunque falle el pipeline, se guarda la evidencia y el log

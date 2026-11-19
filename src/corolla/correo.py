@@ -27,7 +27,7 @@ import pandas as pd
 from . import config as cfg
 from .analizar import miles, millones
 from .logs import escribir
-from .pipeline import esperar_hasta
+from .pipeline import esperar_hasta, ya_ejecutado
 
 ETAPAS = ["busqueda", "descarga", "consolidacion", "analisis"]
 NOMBRES = {"busqueda": "Búsqueda", "descarga": "Descarga", "consolidacion": "Consolidación",
@@ -204,8 +204,13 @@ def main(argv=None) -> int:
     p.add_argument("--modo", choices=["real", "prueba"], default=os.getenv("COROLLA_MODO", "prueba"))
     p.add_argument("--fecha")
     p.add_argument("--esperar-hasta")
+    p.add_argument("--una-vez", action="store_true", help="no reenviar si ya se envió el correo de hoy")
     a = p.parse_args(argv)
     os.environ["COROLLA_MODO"] = a.modo
+    hoy = a.fecha or cfg.ahora().date().isoformat()
+    if a.una_vez and ya_ejecutado(cfg.rutas(hoy, a.modo)["log"], hoy, "correo"):
+        print("El correo de hoy ya se envió: este disparo se omite.", flush=True)
+        return 0
     if a.esperar_hasta:
         esperar_hasta(a.esperar_hasta)
     inicio = cfg.ahora()

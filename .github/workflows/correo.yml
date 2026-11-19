@@ -2,15 +2,17 @@ name: Correo diario 11:00 (Bogotá)
 
 on:
   schedule:
-    # 15:40 UTC = 10:40 Bogotá, del 16 al 21 de noviembre. El script espera hasta las 11:00:00.
+    # RESPALDO. El disparador principal es externo (cron-job.org -> workflow_dispatch modo=programado).
+    # Si el correo de hoy ya se envió, se omite.
     - cron: "40 15 16-21 11 *"
+    - cron: "10 17 19-21 11 *"
   workflow_dispatch:
     inputs:
       modo:
-        description: "real o prueba (prueba lee pruebas/ y pone [PRUEBA] en el asunto)"
+        description: "programado (disparador externo: real + hora exacta + 1 vez al día), real o prueba"
         default: prueba
         type: choice
-        options: [prueba, real]
+        options: [prueba, real, programado]
       fecha:
         description: "AAAA-MM-DD (vacío = hoy en Bogotá)"
         required: false
@@ -28,7 +30,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
-      COROLLA_MODO: ${{ github.event_name == 'schedule' && 'real' || inputs.modo }}
+      COROLLA_MODO: ${{ (github.event_name == 'schedule' || inputs.modo == 'programado') && 'real' || inputs.modo }}
+      PROGRAMADO: ${{ (github.event_name == 'schedule' || inputs.modo == 'programado') && '1' || '0' }}
       PYTHONPATH: src
       GMAIL_USER: jairesacevedo@gmail.com
       GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
@@ -43,7 +46,7 @@ jobs:
 
       - name: Esperar la hora y traer los datos más recientes
         run: |
-          if [ "${{ github.event_name }}" = "schedule" ]; then
+          if [ "$PROGRAMADO" = "1" ]; then
             python -c "from corolla.pipeline import esperar_hasta; esperar_hasta('11:00')"
           fi
           git pull --rebase origin main
@@ -57,7 +60,9 @@ jobs:
           if [ "$((N + Q))" -gt 0 ]; then echo "EJECUCION_EN_CURSO=1" >> "$GITHUB_ENV"; fi
 
       - name: Construir y enviar el correo
-        run: python -m corolla.correo --modo "$COROLLA_MODO" ${{ inputs.fecha && format('--fecha {0}', inputs.fecha) || '' }}
+        run: |
+          if [ "$PROGRAMADO" = "1" ]; then EXTRA="--una-vez"; fi
+          python -m corolla.correo --modo "$COROLLA_MODO" $EXTRA ${{ inputs.fecha && format('--fecha {0}', inputs.fecha) || '' }}
 
       - name: Guardar log y copia del correo
         if: always()
